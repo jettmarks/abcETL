@@ -4,8 +4,8 @@ import java.util.Date;
 
 public class Membership {
 	private String membership_name;
-	private String nationbuilder_signup_id;
-	private String membership_id;
+	private Integer nationbuilder_signup_id;
+	private Integer membership_id;
 	private String first_name;
 	private String last_name;
 	private String email;
@@ -80,11 +80,11 @@ public class Membership {
 		this.status_reason = status_reason;
 	}
 
-	public String getNationbuilder_signup_id() {
+	public Integer getNationbuilder_signup_id() {
 		return nationbuilder_signup_id;
 	}
 
-	public void setNationbuilder_signup_id(String nationbuilder_signup_id) {
+	public void setNationbuilder_signup_id(Integer nationbuilder_signup_id) {
 		this.nationbuilder_signup_id = nationbuilder_signup_id;
 	}
 
@@ -104,11 +104,11 @@ public class Membership {
 		this.mobile_number = mobile_number;
 	}
 
-	public String getMembership_id() {
+	public Integer getMembership_id() {
 		return membership_id;
 	}
 
-	public void setMembership_id(String membership_id) {
+	public void setMembership_id(Integer membership_id) {
 		this.membership_id = membership_id;
 	}
 
