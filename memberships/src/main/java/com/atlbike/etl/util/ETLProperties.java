@@ -18,11 +18,17 @@ public class ETLProperties extends Properties {
 	private static final long serialVersionUID = -1377382212031801148L;
 	private static String propertiesFileName = "nb.etl.properties";
 	private String loginUrlKey = "nb.etl.url.login";
+	private String membershipTypeKey = "nb.etl.membership.types";
 	private String loginUrl = null;
 	
 	public void load() {
 		loginUrl = "temp";
 		put(loginUrlKey, loginUrl);
+		String[] membershipTypes = {"Individual", "Sustainer", "Business"};
+		int index = 1;
+		for (String membershipType : membershipTypes) {
+			put(membershipTypeKey+"."+index++, membershipType);
+		}
 	}
 	
 	public void store() throws FileNotFoundException, IOException {
