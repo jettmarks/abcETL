@@ -53,16 +53,23 @@ public class Main {
 		etlProps = new ETLProperties();
 		etlProps.load();
 
+		// Prepare input file(s)
 		String inputFileName = null;
+		File[] inputFilesCSV = null;
 		if (args.length >= 1) {
-			inputFileName = args[0];
+			int index = 0;
+			for (String arg : args) {
+				inputFileName = arg;
+				inputFilesCSV[index] = new File(arg);
+				if (inputFilesCSV[index] == null
+						|| !inputFilesCSV[index].exists()) {
+					System.err.println("File not found: "
+							+ inputFilesCSV[index]);
+				}
+				index++;
+			}
 		} else {
-			inputFileName = askUserForFileNames(inputFileName);
-		}
-
-		File inputFileCSV = new File(inputFileName);
-		if (inputFileCSV == null || !inputFileCSV.exists()) {
-			System.err.println("File not found: " + inputFileCSV);
+			inputFilesCSV = askUserForFileNames(inputFileName);
 		}
 
 		parentFrame = new JFrame();
@@ -70,7 +77,7 @@ public class Main {
 		parentFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		List<Membership> memberships;
-		memberships = readMemberships(inputFileCSV);
+		memberships = readMemberships(inputFilesCSV);
 
 		Workbook workbookTemplate;
 		workbookTemplate = getWorkbookTemplate();
@@ -109,15 +116,16 @@ public class Main {
 	 * @param inputFileName
 	 * @return
 	 */
-	private static String askUserForFileNames(String inputFileName) {
+	private static File[] askUserForFileNames(String inputFileName) {
 		currentDirectory = new File(etlProps.getProperty(
 				"nb.etl.default.directory", "."));
+		File[] inputFiles = null;
 		JFileChooser chooser = new JFileChooser();
 		chooser.setCurrentDirectory(currentDirectory);
+		chooser.setMultiSelectionEnabled(true);
 		int option = chooser.showOpenDialog(null);
 		if (option == JFileChooser.APPROVE_OPTION) {
-			File inputFile = chooser.getSelectedFile();
-			inputFileName = inputFile.getAbsolutePath();
+			inputFiles = chooser.getSelectedFiles();
 			currentDirectory = chooser.getCurrentDirectory();
 			if (!currentDirectory.getAbsolutePath().equalsIgnoreCase(
 					etlProps.getProperty("nb.etl.default.directory"))) {
@@ -134,7 +142,7 @@ public class Main {
 		} else {
 			System.exit(0);
 		}
-		return inputFileName;
+		return inputFiles;
 	}
 
 	/**
@@ -301,44 +309,53 @@ public class Main {
 	 * Given a CSV file with the expected format, read records into a list of
 	 * Membership objects.
 	 * 
-	 * @param inputFileCSV
+	 * @param inputFilesCSV
 	 * @return
 	 */
-	private static List<Membership> readMemberships(File inputFileCSV) {
+	private static List<Membership> readMemberships(File[] inputFilesCSV) {
 		List<Membership> memberships;
-		memberships = new ArrayList<Membership>();
+		List<Membership> allMemberships = new ArrayList<Membership>();
 		ICsvBeanReader beanReader = null;
-		try {
-			beanReader = new CsvBeanReader(new FileReader(inputFileCSV),
-					CsvPreference.STANDARD_PREFERENCE);
+		for (File inputFile : inputFilesCSV) {
 
-			// the header elements are used to map the values to the bean (names
-			// must match)
-			final String[] header = beanReader.getHeader(true);
-			final CellProcessor[] processors = getProcessors();
+			memberships = new ArrayList<Membership>();
+			try {
+				beanReader = new CsvBeanReader(new FileReader(inputFile),
+						CsvPreference.STANDARD_PREFERENCE);
 
-			Membership membership;
-			while ((membership = beanReader.read(Membership.class, header,
-					processors)) != null) {
-				memberships.add(membership);
-			}
+				// the header elements are used to map the values to the bean
+				// (names
+				// must match)
+				final String[] header = beanReader.getHeader(true);
+				final CellProcessor[] processors = getProcessors();
 
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			if (beanReader != null) {
-				try {
-					beanReader.close();
-				} catch (IOException e) {
-					// ignore
+				Membership membership;
+				while ((membership = beanReader.read(Membership.class, header,
+						processors)) != null) {
+					memberships.add(membership);
+				}
+
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} finally {
+				if (beanReader != null) {
+					try {
+						beanReader.close();
+					} catch (IOException e) {
+						// ignore
+					}
 				}
 			}
+			allMemberships.addAll(memberships);
+			System.out.println("Read " + memberships.size() + " records from "
+					+ inputFile.getName());
 		}
-		System.out.println("Read " + memberships.size() + " records");
-		return memberships;
+		System.out.println("Read " + allMemberships.size()
+				+ " records in total");
+		return allMemberships;
 	}
 
 	/**
