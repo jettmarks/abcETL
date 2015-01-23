@@ -1,7 +1,7 @@
 package com.atlbike.etl;
 
+import java.awt.BorderLayout;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -11,7 +11,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JProgressBar;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -35,6 +39,7 @@ import com.atlbike.etl.domain.Membership;
 public class Main {
 
 	private static File currentDirectory;
+	private static JFrame parentFrame;
 
 	/**
 	 * @param args
@@ -51,6 +56,11 @@ public class Main {
 		if (inputFileCSV == null || !inputFileCSV.exists()) {
 			System.err.println("File not found: " + inputFileCSV);
 		}
+
+		parentFrame = new JFrame();
+		parentFrame.setSize(500, 150);
+		parentFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		// parentFrame.setVisible(true);
 
 		List<Membership> memberships;
 		memberships = readMemberships(inputFileCSV);
@@ -77,7 +87,7 @@ public class Main {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		System.exit(0);
 	}
 
 	/**
@@ -106,6 +116,27 @@ public class Main {
 	 */
 	private static void populateWorkbook(List<Membership> memberships,
 			Workbook workbookTemplate) {
+		// Prepare progress dialog
+		final JDialog dlg = new JDialog(parentFrame, "Converting to Excel",
+				true);
+		JProgressBar progressBar = new JProgressBar(0, memberships.size());
+		progressBar.setValue(0);
+		progressBar.setStringPainted(true);
+		// progressBar.setVisible(true);
+		dlg.add(BorderLayout.CENTER, progressBar);
+		dlg.add(BorderLayout.NORTH, new JLabel("Conversion Progress ..."));
+		dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+		dlg.setSize(300, 75);
+		dlg.setLocationRelativeTo(null);
+
+		// dlg.setVisible(true);
+		Thread t = new Thread(new Runnable() {
+			public void run() {
+				dlg.setVisible(true);
+			}
+		});
+		t.start();
+
 		// Prepare Date Style for formatting dates
 		cellStyleDate = workbookTemplate.createCellStyle();
 		CreationHelper creationHelper = workbookTemplate.getCreationHelper();
@@ -140,7 +171,11 @@ public class Main {
 			row.getCell(colIndex).setCellStyle(cellStyleDate);
 			row.getCell(colIndex).setCellFormula(monthFormula);
 			rowIndex++;
+			progressBar.setValue(rowIndex);
+			progressBar.setStringPainted(true);
 		}
+		progressBar.setVisible(false);
+		dlg.setVisible(false);
 	}
 
 	/**
@@ -208,17 +243,13 @@ public class Main {
 		String templateFile = "template.xlsx";
 		InputStream inputStream = null;
 		try {
-			inputStream = new FileInputStream(new File(templateFile));
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		try {
+			inputStream = Main.class.getResourceAsStream(templateFile);
 			workbookTemplate = new XSSFWorkbook(inputStream);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+
 		try {
 			inputStream.close();
 		} catch (IOException e) {
