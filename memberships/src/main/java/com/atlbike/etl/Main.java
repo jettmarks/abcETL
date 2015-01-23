@@ -44,22 +44,7 @@ public class Main {
 		if (args.length >= 1) {
 			inputFileName = args[0];
 		} else {
-			initialDirectory = new File(System.getProperty("nb.etl.default.directory", "."));
-			JFileChooser chooser = new JFileChooser();
-			chooser.setCurrentDirectory(initialDirectory);
-			int option = chooser.showOpenDialog(null);
-			if (option == JFileChooser.APPROVE_OPTION) {
-				File inputFile = chooser.getSelectedFile();
-				try {
-					inputFileName = inputFile.getCanonicalFile().getName();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} else {
-				System.exit(0);
-			}
-			// System.out.println("usage: Main <inputFileName> (in csv format)");
-			// System.exit(-1);
+			inputFileName = askUserForFileNames(inputFileName);
 		}
 
 		File inputFileCSV = new File(inputFileName);
@@ -89,6 +74,25 @@ public class Main {
 			e.printStackTrace();
 		}
 
+	}
+
+	/**
+	 * @param inputFileName
+	 * @return
+	 */
+	private static String askUserForFileNames(String inputFileName) {
+		initialDirectory = new File(System.getProperty(
+				"nb.etl.default.directory", "."));
+		JFileChooser chooser = new JFileChooser();
+		chooser.setCurrentDirectory(initialDirectory);
+		int option = chooser.showOpenDialog(null);
+		if (option == JFileChooser.APPROVE_OPTION) {
+			File inputFile = chooser.getSelectedFile();
+			inputFileName = inputFile.getAbsolutePath();
+		} else {
+			System.exit(0);
+		}
+		return inputFileName;
 	}
 
 	/**
