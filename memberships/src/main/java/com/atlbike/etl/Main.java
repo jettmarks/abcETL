@@ -35,16 +35,24 @@ import org.supercsv.io.ICsvBeanReader;
 import org.supercsv.prefs.CsvPreference;
 
 import com.atlbike.etl.domain.Membership;
+import com.atlbike.etl.util.ETLProperties;
 
 public class Main {
 
 	private static File currentDirectory;
 	private static JFrame parentFrame;
 
+	private static JDialog dlg;
+	private static CellStyle cellStyleDate = null;
+	private static ETLProperties etlProps;
+
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		etlProps = new ETLProperties();
+		etlProps.load();
+
 		String inputFileName = null;
 		if (args.length >= 1) {
 			inputFileName = args[0];
@@ -67,9 +75,18 @@ public class Main {
 		Workbook workbookTemplate;
 		workbookTemplate = getWorkbookTemplate();
 
+		// Add the memberships to a new workbook
 		populateWorkbook(memberships, workbookTemplate);
 
 		// Write the modified file back out to a new file
+		writeWorkbook(workbookTemplate);
+		System.exit(0);
+	}
+
+	/**
+	 * @param workbookTemplate
+	 */
+	private static void writeWorkbook(Workbook workbookTemplate) {
 		String destinationFile = "newFile.xlsx";
 		FileOutputStream outputStream = null;
 		try {
@@ -86,7 +103,6 @@ public class Main {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.exit(0);
 	}
 
 	/**
@@ -94,7 +110,7 @@ public class Main {
 	 * @return
 	 */
 	private static String askUserForFileNames(String inputFileName) {
-		currentDirectory = new File(System.getProperty(
+		currentDirectory = new File(etlProps.getProperty(
 				"nb.etl.default.directory", "."));
 		JFileChooser chooser = new JFileChooser();
 		chooser.setCurrentDirectory(currentDirectory);
@@ -103,6 +119,18 @@ public class Main {
 			File inputFile = chooser.getSelectedFile();
 			inputFileName = inputFile.getAbsolutePath();
 			currentDirectory = chooser.getCurrentDirectory();
+			if (!currentDirectory.getAbsolutePath().equalsIgnoreCase(
+					etlProps.getProperty("nb.etl.default.directory"))) {
+				etlProps.setProperty("nb.etl.default.directory",
+						currentDirectory.getAbsolutePath());
+				try {
+					etlProps.store();
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		} else {
 			System.exit(0);
 		}
@@ -158,7 +186,8 @@ public class Main {
 			rowIndex++;
 			progressBar.setValue(rowIndex);
 			// Avoid painting unless the value would appear different
-			if (rowIndex % modulo == 0) progressBar.setStringPainted(true);
+			if (rowIndex % modulo == 0)
+				progressBar.setStringPainted(true);
 		}
 		progressBar.setVisible(false);
 		dlg.setVisible(false);
@@ -170,8 +199,7 @@ public class Main {
 	 */
 	private static JProgressBar prepareProgressBar(int recordCount) {
 		JProgressBar progressBar = null;
-		dlg = new JDialog(parentFrame, "Converting to Excel",
-				true);
+		dlg = new JDialog(parentFrame, "Converting to Excel", true);
 		progressBar = new JProgressBar(0, recordCount);
 		progressBar.setValue(0);
 		progressBar.setStringPainted(true);
@@ -227,9 +255,6 @@ public class Main {
 		}
 	}
 
-	private static CellStyle cellStyleDate = null;
-	private static JDialog dlg;
-
 	/**
 	 * Helper function to check for empty cell before attempting to put
 	 * something in it.
@@ -251,7 +276,7 @@ public class Main {
 	}
 
 	/**
-	 * 
+	 * Pulls "blank" copy of Excel spreadsheet from resources.
 	 */
 	private static Workbook getWorkbookTemplate() {
 		Workbook workbookTemplate = null;
@@ -261,7 +286,6 @@ public class Main {
 			inputStream = Main.class.getResourceAsStream(templateFile);
 			workbookTemplate = new XSSFWorkbook(inputStream);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -274,6 +298,9 @@ public class Main {
 	}
 
 	/**
+	 * Given a CSV file with the expected format, read records into a list of
+	 * Membership objects.
+	 * 
 	 * @param inputFileCSV
 	 * @return
 	 */
@@ -294,10 +321,6 @@ public class Main {
 			while ((membership = beanReader.read(Membership.class, header,
 					processors)) != null) {
 				memberships.add(membership);
-				// System.out.println(String.format(
-				// "lineNo=%s, rowNo=%s, customer=%s",
-				// beanReader.getLineNumber(), beanReader.getRowNumber(),
-				// membership));
 			}
 
 		} catch (FileNotFoundException e) {

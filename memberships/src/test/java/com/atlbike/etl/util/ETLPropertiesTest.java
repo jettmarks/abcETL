@@ -1,9 +1,7 @@
 package com.atlbike.etl.util;
 
-import static org.junit.Assert.*;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
 
@@ -14,15 +12,16 @@ public class ETLPropertiesTest {
 		ETLProperties etlProps = new ETLProperties();
 		assertNotNull(etlProps);
 		etlProps.load();
-		try {
-			etlProps.store();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		String memType1 = etlProps.getProperty("nb.etl.membership.types.1");
+		assertEquals("Individual", memType1);
+
+		// try {
+		// etlProps.store();
+		// } catch (FileNotFoundException e) {
+		// e.printStackTrace();
+		// } catch (IOException e) {
+		// e.printStackTrace();
+		// }
 	}
 
 }

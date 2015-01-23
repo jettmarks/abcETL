@@ -1,36 +1,79 @@
 package com.atlbike.etl.util;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
 
 /**
- * Default values are provided in the jar file and user overrides are 
- * maintained in the 'user.home/etl' directory.
+ * Default values are provided in the jar file and user overrides are maintained
+ * in the 'user.home/etl' directory.
  * 
  * @author a8l8f
  */
 public class ETLProperties extends Properties {
-	
+
 	private static final long serialVersionUID = -1377382212031801148L;
 	private static String propertiesFileName = "nb.etl.properties";
-	private String loginUrlKey = "nb.etl.url.login";
-	private String membershipTypeKey = "nb.etl.membership.types";
+	// private String loginUrlKey = "nb.etl.url.login";
+	// private String membershipTypeKey = "nb.etl.membership.types";
 	private String loginUrl = null;
-	
+
 	public void load() {
-		loginUrl = "temp";
-		put(loginUrlKey, loginUrl);
-		String[] membershipTypes = {"Individual", "Sustainer", "Business"};
-		int index = 1;
-		for (String membershipType : membershipTypes) {
-			put(membershipTypeKey+"."+index++, membershipType);
+		// Defaults come in first
+		InputStream inputStream = ETLProperties.class
+				.getResourceAsStream(propertiesFileName);
+		try {
+			load(inputStream);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (inputStream != null)
+				try {
+					inputStream.close();
+				} catch (IOException e) {
+					// ignore
+				}
 		}
+
+		// Then bring in user overrides ...
+		String userHomeFileName = System.getProperty("user.home") + "/etl/"
+				+ propertiesFileName;
+		File userHomeFile = new File(userHomeFileName);
+		// ... but only if the file exists
+		if (userHomeFile.exists()) {
+			try {
+				inputStream = new FileInputStream(userHomeFile);
+				load(inputStream);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (inputStream != null)
+					try {
+						inputStream.close();
+					} catch (IOException e) {
+						// ignore
+					}
+			}
+		}
+
+		// What I used to populate this originally
+		//
+		// loginUrl = "temp";
+		// put(loginUrlKey, loginUrl);
+		// String[] membershipTypes = {"Individual", "Sustainer", "Business"};
+		// int index = 1;
+		// for (String membershipType : membershipTypes) {
+		// put(membershipTypeKey+"."+index++, membershipType);
+		// }
 	}
-	
+
 	public void store() throws FileNotFoundException, IOException {
 		File userPropsFile = null;
 		userPropsFile = prepareUsersFile();
@@ -39,20 +82,20 @@ public class ETLProperties extends Properties {
 	}
 
 	/**
-	 * Creates the file (and directory) if it doesn't exist and in any case
-	 * will return the writable file for storing the properties.
+	 * Creates the file (and directory) if it doesn't exist and in any case will
+	 * return the writable file for storing the properties.
 	 * 
 	 * @return
 	 * @throws IOException
 	 */
 	private File prepareUsersFile() throws IOException {
 		File propsFile;
-		String userHome = System.getProperty("user.home")+"/etl";
+		String userHome = System.getProperty("user.home") + "/etl";
 		File userHomeDirectory = new File(userHome);
 		if (!userHomeDirectory.exists()) {
 			userHomeDirectory.mkdir();
 		}
-		String propsFileName = userHome+"/"+propertiesFileName;
+		String propsFileName = userHome + "/" + propertiesFileName;
 		propsFile = new File(propsFileName);
 		if (!propsFile.exists()) {
 			propsFile.createNewFile();
@@ -67,6 +110,5 @@ public class ETLProperties extends Properties {
 	public void setLoginUrl(String loginUrl) {
 		this.loginUrl = loginUrl;
 	}
-	
 
 }
