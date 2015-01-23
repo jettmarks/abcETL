@@ -5,7 +5,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.swing.JFileChooser;
@@ -31,6 +34,8 @@ public class Main {
 	private static JFrame parentFrame;
 
 	private static ETLProperties etlProps;
+	private static SimpleDateFormat nbDateFormat = new SimpleDateFormat(
+			"yyyyMMdd");
 
 	/**
 	 * @param args
@@ -60,8 +65,11 @@ public class Main {
 		// Add the memberships to a new workbook
 		converter.populateWorkbook(memberships, workbookTemplate);
 
+		// Extract the Date info from the input files to build output file name
+		String fileNameSuffix = extractFileNameDate(inputFilesCSV);
+
 		// Write the modified file back out to a new file
-		writeWorkbook(workbookTemplate);
+		writeWorkbook(workbookTemplate, fileNameSuffix);
 		System.exit(0);
 	}
 
@@ -90,10 +98,58 @@ public class Main {
 	}
 
 	/**
+	 * Takes the list of input files and checks to see whether a date is part of
+	 * the file name so we can re-use it for the output file.
+	 * 
+	 * If the inputFiles have no date matching the expected pattern, we use the
+	 * current date as a default.
+	 * 
+	 * Package level to make it easier to unit test.
+	 * 
+	 * @param inputFilesCSV
+	 * @return
+	 */
+	static String extractFileNameDate(File[] inputFilesCSV) {
+		String fileNameDate = null;
+		Date fnDate = null;
+		for (File inputFile : inputFilesCSV) {
+			if (inputFile != null) {
+				String fileName = inputFile.getName();
+				String[] tokens = fileName.split("_");
+				String lastToken = tokens[tokens.length - 1];
+				if (lastToken != null) {
+					// Expected format is <memType>_members_YYYYMMDD.csv
+					fnDate = parseForDate(lastToken);
+					if (fnDate != null)
+						break;
+				}
+			}
+		}
+		// If we can't find one, use today's date
+		if (fnDate == null) {
+			fnDate = new Date();
+		}
+		fileNameDate = nbDateFormat.format(fnDate);
+		return fileNameDate;
+	}
+
+	private static Date parseForDate(String token) {
+		Date date = null;
+		try {
+			date = nbDateFormat.parse(token);
+		} catch (ParseException e) {
+			System.out.println("Unable to parse " + token + " as YYYYmmdd");
+			return null;
+		}
+		return date;
+	}
+
+	/**
 	 * @param workbookTemplate
 	 */
-	private static void writeWorkbook(Workbook workbookTemplate) {
-		String destinationFile = "newFile.xlsx";
+	private static void writeWorkbook(Workbook workbookTemplate,
+			String fileNameSuffix) {
+		String destinationFile = "member_aging_" + fileNameSuffix + ".xlsx";
 		FileOutputStream outputStream = null;
 		try {
 			String currentPath = currentDirectory.getAbsolutePath();
