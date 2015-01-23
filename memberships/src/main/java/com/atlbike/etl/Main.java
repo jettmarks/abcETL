@@ -34,7 +34,7 @@ import com.atlbike.etl.domain.Membership;
 
 public class Main {
 
-	private static File initialDirectory;
+	private static File currentDirectory;
 
 	/**
 	 * @param args
@@ -64,7 +64,11 @@ public class Main {
 		String destinationFile = "newFile.xlsx";
 		FileOutputStream outputStream = null;
 		try {
-			outputStream = new FileOutputStream(new File(destinationFile));
+			String currentPath = currentDirectory.getAbsolutePath();
+			System.out.println("Writing file to " + currentPath + "/"
+					+ destinationFile);
+			outputStream = new FileOutputStream(new File(currentPath + "/"
+					+ destinationFile));
 			workbookTemplate.write(outputStream);
 			outputStream.close();
 		} catch (FileNotFoundException e) {
@@ -81,14 +85,15 @@ public class Main {
 	 * @return
 	 */
 	private static String askUserForFileNames(String inputFileName) {
-		initialDirectory = new File(System.getProperty(
+		currentDirectory = new File(System.getProperty(
 				"nb.etl.default.directory", "."));
 		JFileChooser chooser = new JFileChooser();
-		chooser.setCurrentDirectory(initialDirectory);
+		chooser.setCurrentDirectory(currentDirectory);
 		int option = chooser.showOpenDialog(null);
 		if (option == JFileChooser.APPROVE_OPTION) {
 			File inputFile = chooser.getSelectedFile();
 			inputFileName = inputFile.getAbsolutePath();
+			currentDirectory = chooser.getCurrentDirectory();
 		} else {
 			System.exit(0);
 		}
