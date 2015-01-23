@@ -60,7 +60,6 @@ public class Main {
 		parentFrame = new JFrame();
 		parentFrame.setSize(500, 150);
 		parentFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		// parentFrame.setVisible(true);
 
 		List<Membership> memberships;
 		memberships = readMemberships(inputFileCSV);
@@ -111,31 +110,17 @@ public class Main {
 	}
 
 	/**
+	 * Populates the workbook and displays progress bar as it goes.
+	 * 
 	 * @param memberships
 	 * @param workbookTemplate
 	 */
 	private static void populateWorkbook(List<Membership> memberships,
 			Workbook workbookTemplate) {
 		// Prepare progress dialog
-		final JDialog dlg = new JDialog(parentFrame, "Converting to Excel",
-				true);
-		JProgressBar progressBar = new JProgressBar(0, memberships.size());
-		progressBar.setValue(0);
-		progressBar.setStringPainted(true);
-		// progressBar.setVisible(true);
-		dlg.add(BorderLayout.CENTER, progressBar);
-		dlg.add(BorderLayout.NORTH, new JLabel("Conversion Progress ..."));
-		dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-		dlg.setSize(300, 75);
-		dlg.setLocationRelativeTo(null);
-
-		// dlg.setVisible(true);
-		Thread t = new Thread(new Runnable() {
-			public void run() {
-				dlg.setVisible(true);
-			}
-		});
-		t.start();
+		int recordCount = memberships.size();
+		int modulo = recordCount / 100;
+		JProgressBar progressBar = prepareProgressBar(recordCount);
 
 		// Prepare Date Style for formatting dates
 		cellStyleDate = workbookTemplate.createCellStyle();
@@ -172,10 +157,39 @@ public class Main {
 			row.getCell(colIndex).setCellFormula(monthFormula);
 			rowIndex++;
 			progressBar.setValue(rowIndex);
-			progressBar.setStringPainted(true);
+			// Avoid painting unless the value would appear different
+			if (rowIndex % modulo == 0) progressBar.setStringPainted(true);
 		}
 		progressBar.setVisible(false);
 		dlg.setVisible(false);
+	}
+
+	/**
+	 * @param recordCount
+	 * @return
+	 */
+	private static JProgressBar prepareProgressBar(int recordCount) {
+		JProgressBar progressBar = null;
+		dlg = new JDialog(parentFrame, "Converting to Excel",
+				true);
+		progressBar = new JProgressBar(0, recordCount);
+		progressBar.setValue(0);
+		progressBar.setStringPainted(true);
+		// progressBar.setVisible(true);
+		dlg.add(BorderLayout.CENTER, progressBar);
+		dlg.add(BorderLayout.NORTH, new JLabel("Conversion Progress ..."));
+		dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+		dlg.setSize(300, 75);
+		dlg.setLocationRelativeTo(null);
+
+		// dlg.setVisible(true);
+		Thread t = new Thread(new Runnable() {
+			public void run() {
+				dlg.setVisible(true);
+			}
+		});
+		t.start();
+		return progressBar;
 	}
 
 	/**
@@ -214,6 +228,7 @@ public class Main {
 	}
 
 	private static CellStyle cellStyleDate = null;
+	private static JDialog dlg;
 
 	/**
 	 * Helper function to check for empty cell before attempting to put
