@@ -36,36 +36,23 @@ public class Main {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		// Setup our properties
 		etlProps = new ETLProperties();
 		etlProps.load();
 
 		// Prepare input file(s)
-		String inputFileName = null;
-		File[] inputFilesCSV = null;
-		if (args.length >= 1) {
-			int index = 0;
-			inputFilesCSV = new File[args.length];
-			for (String arg : args) {
-				inputFileName = arg;
-				inputFilesCSV[index] = new File(arg);
-				if (inputFilesCSV[index] == null
-						|| !inputFilesCSV[index].exists()) {
-					System.err.println("File not found: "
-							+ inputFilesCSV[index]);
-				}
-				index++;
-			}
-		} else {
-			inputFilesCSV = askUserForFileNames(inputFileName);
-		}
+		File[] inputFilesCSV = getInputFileList(args);
 
+		// Application Window
 		parentFrame = new JFrame();
 		parentFrame.setSize(500, 150);
 		parentFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+		// Read from the input files into Membership objects
 		List<Membership> memberships;
 		memberships = readMemberships(inputFilesCSV);
 
+		// Get the Excel Workbook we want to populate
 		Workbook workbookTemplate;
 		Converter converter = new Converter(parentFrame);
 		workbookTemplate = converter.getWorkbookTemplate();
@@ -76,6 +63,30 @@ public class Main {
 		// Write the modified file back out to a new file
 		writeWorkbook(workbookTemplate);
 		System.exit(0);
+	}
+
+	/**
+	 * @param args
+	 * @return
+	 */
+	private static File[] getInputFileList(String[] args) {
+		File[] inputFilesCSV = null;
+		if (args.length >= 1) {
+			int index = 0;
+			inputFilesCSV = new File[args.length];
+			for (String arg : args) {
+				inputFilesCSV[index] = new File(arg);
+				if (inputFilesCSV[index] == null
+						|| !inputFilesCSV[index].exists()) {
+					System.err.println("File not found: "
+							+ inputFilesCSV[index]);
+				}
+				index++;
+			}
+		} else {
+			inputFilesCSV = askUserForFileNames();
+		}
+		return inputFilesCSV;
 	}
 
 	/**
@@ -101,10 +112,11 @@ public class Main {
 	}
 
 	/**
-	 * @param inputFileName
+	 * Dialog to ask user to choose files to be included in the conversion.
+	 * 
 	 * @return
 	 */
-	private static File[] askUserForFileNames(String inputFileName) {
+	private static File[] askUserForFileNames() {
 		currentDirectory = new File(etlProps.getProperty(
 				"nb.etl.default.directory", "."));
 		File[] inputFiles = null;
