@@ -17,11 +17,16 @@ import java.util.Properties;
  */
 public class ETLProperties extends Properties {
 
+	private static final String LOGIN_EMAIL_KEY = "nb.login.userEmail";
+	private static final String LOGIN_PWD_KEY = "nb.login.password";
+
 	private static final long serialVersionUID = -1377382212031801148L;
 	private static String propertiesFileName = "nb.etl.properties";
 	// private String loginUrlKey = "nb.etl.url.login";
 	// private String membershipTypeKey = "nb.etl.membership.types";
 	private String loginUrl = null;
+	private String loginEmail = null;
+	private String loginPwd = null;
 
 	public void load() {
 		// Defaults come in first
@@ -63,15 +68,8 @@ public class ETLProperties extends Properties {
 			}
 		}
 
-		// What I used to populate this originally
-		//
-		// loginUrl = "temp";
-		// put(loginUrlKey, loginUrl);
-		// String[] membershipTypes = {"Individual", "Sustainer", "Business"};
-		// int index = 1;
-		// for (String membershipType : membershipTypes) {
-		// put(membershipTypeKey+"."+index++, membershipType);
-		// }
+		setLoginEmail(getProperty(LOGIN_EMAIL_KEY));
+		setLoginPwd(getProperty(LOGIN_PWD_KEY));
 	}
 
 	public void store() throws FileNotFoundException, IOException {
@@ -109,6 +107,24 @@ public class ETLProperties extends Properties {
 
 	public void setLoginUrl(String loginUrl) {
 		this.loginUrl = loginUrl;
+	}
+
+	public String getLoginEmail() {
+		return loginEmail;
+	}
+
+	public void setLoginEmail(String loginEmail) {
+		this.loginEmail = loginEmail;
+		setProperty(LOGIN_EMAIL_KEY, loginEmail);
+	}
+
+	public String getLoginPwd() {
+		return loginPwd;
+	}
+
+	public void setLoginPwd(String loginPwd) {
+		this.loginPwd = loginPwd;
+		setProperty(LOGIN_PWD_KEY, loginPwd);
 	}
 
 }
