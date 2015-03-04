@@ -11,7 +11,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -31,20 +33,27 @@ public class NBSession {
 	private String loginRedirectURL = "https://atlbike.nationbuilder.com/login";
 	private String loginPostURL = "https://atlbike.nationbuilder.com/forms/user_sessions";
 	private CloseableHttpClient httpClient;
+	private boolean useProxyFlag = false;
+	private HttpHost proxy;
+	private RequestConfig proxyConfig;
 
 	public void login(String userEmail, String password) {
 		String authenticityToken = "";
+
+		if (useProxyFlag) {
+			proxy = new HttpHost("localhost", 3128);
+			proxyConfig = RequestConfig.custom().setProxy(proxy).build();
+		}
+
 		BasicCookieStore cookieStore = new BasicCookieStore();
 		httpClient = HttpClients.custom().setDefaultCookieStore(cookieStore)
 				.setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-		// Hanging around in case I want to pick back up with proxy
-		// HttpHost proxy = new HttpHost("localhost", 3128);
-		// RequestConfig config =
-		// RequestConfig.custom().setProxy(proxy).build();
-
 		try {
 			HttpGet httpGet = new HttpGet(loginRedirectURL);
+			if (useProxyFlag) {
+				httpGet.setConfig(proxyConfig);
+			}
 			CloseableHttpResponse response1;
 			response1 = httpClient.execute(httpGet);
 
@@ -65,8 +74,12 @@ public class NBSession {
 				response1.close();
 			}
 
-			HttpUriRequest login = RequestBuilder.post()
-					.setUri(new URI(loginPostURL))
+			// HttpPost login = RequestBuilder.post()
+			RequestBuilder requestBuilder = RequestBuilder.post();
+			if (useProxyFlag) {
+				requestBuilder = requestBuilder.setConfig(proxyConfig);
+			}
+			HttpUriRequest login = requestBuilder.setUri(new URI(loginPostURL))
 					.addParameter("email_address", "")
 					.addParameter("user_session[email]", userEmail)
 					.addParameter("user_session[password]", password)
@@ -131,6 +144,9 @@ public class NBSession {
 
 	public void save(String targetURL) {
 		HttpGet httpGet = new HttpGet(targetURL);
+		if (useProxyFlag) {
+			httpGet.setConfig(proxyConfig);
+		}
 		CloseableHttpResponse response;
 		try {
 			response = httpClient.execute(httpGet);

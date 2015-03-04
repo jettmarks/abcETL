@@ -49,6 +49,12 @@ public class Converter {
 	 */
 	public void populateWorkbook(List<Membership> memberships,
 			Workbook workbookTemplate) {
+
+		// Nothing to do if we don't have a list of memberships to work
+		if (memberships == null) {
+			return;
+		}
+
 		// Prepare progress dialog
 		int recordCount = memberships.size();
 		int modulo = recordCount / 100;

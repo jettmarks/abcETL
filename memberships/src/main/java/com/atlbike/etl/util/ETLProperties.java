@@ -127,4 +127,16 @@ public class ETLProperties extends Properties {
 		setProperty(LOGIN_PWD_KEY, loginPwd);
 	}
 
+	public boolean isAccountDefined() {
+		if (loginEmail == null)
+			return false;
+		if (loginPwd == null)
+			return false;
+		if (loginEmail.trim().length() == 0)
+			return false;
+		if (loginPwd.trim().length() == 0)
+			return false;
+		return true;
+	}
+
 }

@@ -37,7 +37,22 @@ public class Main {
 	private static SimpleDateFormat nbDateFormat = new SimpleDateFormat(
 			"yyyyMMdd");
 
+	/** If user passes args, we're not in automatic mode. */
+	private static boolean haveArgsFlag = false;
+	private static File[] inputFilesCSV;
+
 	/**
+	 * Entry point for obtaining current membership data and then preparing a
+	 * set of reports based on that data.
+	 * 
+	 * If this is invoked without any arguments, the expectation is the program
+	 * will automatically select the NationBuilder website as the source for new
+	 * records.
+	 * 
+	 * If the user provides a pass parameter, it is either a list of files to be
+	 * used, or a flag asking that the user be prompted for a set of files that
+	 * exist on the local file system.
+	 * 
 	 * @param args
 	 */
 	public static void main(String[] args) {
@@ -45,8 +60,28 @@ public class Main {
 		etlProps = new ETLProperties();
 		etlProps.load();
 
-		// Prepare input file(s)
-		File[] inputFilesCSV = getInputFileList(args);
+		if (args.length >= 1) {
+			haveArgsFlag = true;
+		} else {
+			if (!etlProps.isAccountDefined()) {
+				// Ask user for account credentials
+				System.out.println("Asking user for account credentials");
+			}
+		}
+
+		// Prepare input file(s) - polls user for local files
+		if (haveArgsFlag) {
+			// Dialog for selecting list of file names
+			inputFilesCSV = getInputFileList(args);
+		} else {
+			// Retrieve standard set of files from NationBuilder export
+			inputFilesCSV = extractFromNationBuilder();
+		}
+
+		if (inputFilesCSV == null) {
+			System.err.println("No Membership Files to be read - exiting");
+			System.exit(-1);
+		}
 
 		// Application Window
 		parentFrame = new JFrame();
@@ -71,6 +106,10 @@ public class Main {
 		// Write the modified file back out to a new file
 		writeWorkbook(workbookTemplate, fileNameSuffix);
 		System.exit(0);
+	}
+
+	private static File[] extractFromNationBuilder() {
+		return null;
 	}
 
 	/**
@@ -212,6 +251,12 @@ public class Main {
 		List<Membership> memberships;
 		List<Membership> allMemberships = new ArrayList<Membership>();
 		ICsvBeanReader beanReader = null;
+
+		// Nothing to do if we have no files to read
+		if (inputFilesCSV == null) {
+			return null;
+		}
+
 		for (File inputFile : inputFilesCSV) {
 
 			memberships = new ArrayList<Membership>();
