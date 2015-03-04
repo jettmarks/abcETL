@@ -7,6 +7,7 @@
             <manifest>
                 <attribute name="Main-Class" value="com.atlbike.etl.Main"/>
                 <attribute name="Class-Path" value="."/>
+            	<attribute name="SplashScreen-Image" value="images/logoWithRays_470x246_bgrnd.png" />
             </manifest>
             <fileset dir="/home/jett/git/abcETL/memberships/target/classes"/>
             <zipfileset excludes="META-INF/*.SF" src="/usr/lib/eclipse/dropins/jdt/plugins/org.junit_4.8.2.v4_8_2_v20110321-1705/junit.jar"/>
