@@ -7,95 +7,108 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.List;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CookieStore;
-import org.apache.http.client.config.CookieSpecs;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.cookie.Cookie;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 public class NBSession {
 
-	private String targetURL = "https://atlbike.nationbuilder.com/admin/membership_types/14/download";
-	private String loginURL = "https://atlbike.nationbuilder.com/forms/user_sessions";
+	private String loginRedirectURL = "https://atlbike.nationbuilder.com/login";
+	private String loginPostURL = "https://atlbike.nationbuilder.com/forms/user_sessions";
+	private CloseableHttpClient httpClient;
 
-	public void login() {
-		HttpResponse loginResponse = null;
+	public void login(String userEmail, String password) {
+		String authenticityToken = "";
+		BasicCookieStore cookieStore = new BasicCookieStore();
+		httpClient = HttpClients.custom().setDefaultCookieStore(cookieStore)
+				.setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-		// httpClient = HttpClientBuilder.create()
-		// .setRedirectStrategy(new LaxRedirectStrategy()).build();
-		RequestConfig globalConfig = RequestConfig.custom()
-				.setCookieSpec(CookieSpecs.BEST_MATCH).build();
-		CookieStore cookieStore = new BasicCookieStore();
-		HttpClientContext context = HttpClientContext.create();
-		context.setCookieStore(cookieStore);
-
-		CloseableHttpClient httpClient = HttpClients.custom()
-				.setRedirectStrategy(new LaxRedirectStrategy())
-				.setDefaultRequestConfig(globalConfig)
-				.setDefaultCookieStore(cookieStore).build();
-
+		// Hanging around in case I want to pick back up with proxy
 		// HttpHost proxy = new HttpHost("localhost", 3128);
 		// RequestConfig config =
 		// RequestConfig.custom().setProxy(proxy).build();
 
-		// HttpPost httpPost = new HttpPost(targetURL);
-		HttpPost httpPost = new HttpPost(loginURL);
-
-		// httpPost.setConfig(config);
-		List<NameValuePair> nvps = new ArrayList<NameValuePair>();
-		nvps.add(new BasicNameValuePair("user_session_email", "email@domain"));
-		nvps.add(new BasicNameValuePair("user_session_password", "magicCookie"));
-
 		try {
+			HttpGet httpGet = new HttpGet(loginRedirectURL);
+			CloseableHttpResponse response1;
+			response1 = httpClient.execute(httpGet);
 
-			httpPost.setEntity(new UrlEncodedFormEntity(nvps));
-			loginResponse = httpClient.execute(httpPost);
-			System.out.println(loginResponse.getStatusLine());
-			HttpEntity loginEntity = loginResponse.getEntity();
-			EntityUtils.consume(loginEntity);
-
-			/* Check cookies */
-			List<Cookie> cookies = context.getCookieStore().getCookies();
-			if (cookies.isEmpty()) {
-				System.out.println("None");
-			} else {
-				for (int i = 0; i < cookies.size(); i++) {
-					System.out.println("- " + cookies.get(i).toString());
+			try {
+				HttpEntity entity = response1.getEntity();
+				String content = EntityUtils.toString(entity);
+				Document doc = Jsoup.parse(content);
+				Elements metaElements = doc.select("META");
+				for (Element elem : metaElements) {
+					// System.out.println(elem);
+					if (elem.hasAttr("name")
+							&& "csrf-token".equals(elem.attr("name"))) {
+						// System.out.println("Value: " + elem.attr("content"));
+						authenticityToken = elem.attr("content");
+					}
 				}
+			} finally {
+				response1.close();
 			}
 
-			httpPost = new HttpPost(targetURL);
-			HttpResponse fileResponse = httpClient.execute(httpPost);
-			HttpEntity fileEntity = fileResponse.getEntity();
-			System.out.println(fileResponse.getStatusLine());
-			saveEntity(fileEntity);
+			HttpUriRequest login = RequestBuilder.post()
+					.setUri(new URI(loginPostURL))
+					.addParameter("email_address", "")
+					.addParameter("user_session[email]", userEmail)
+					.addParameter("user_session[password]", password)
+					.addParameter("user_session[remember_me]", "1")
+					.addParameter("commit", "Sign in with email")
+					.addParameter("authenticity_token", authenticityToken)
+					.build();
+			CloseableHttpResponse response2 = httpClient.execute(login);
+			try {
 
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+				HttpEntity loginEntity = response2.getEntity();
+				EntityUtils.consume(loginEntity);
+
+				/*
+				 * Check cookies List<Cookie> cookies =
+				 * context.getCookieStore().getCookies(); if (cookies.isEmpty())
+				 * { System.out.println("None"); } else { for (int i = 0; i <
+				 * cookies.size(); i++) { System.out.println("- " +
+				 * cookies.get(i).toString()); } }
+				 */
+
+				/*
+				 * HttpPost httpPost = new HttpPost(targetURL); HttpResponse
+				 * fileResponse = httpClient.execute(httpPost); HttpEntity
+				 * fileEntity = fileResponse.getEntity();
+				 * System.out.println(fileResponse.getStatusLine());
+				 * saveEntity(fileEntity);
+				 */
+			} finally {
+				response2.close();
+			}
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		// httpClient is left open to permit next set of calls
 	}
 
 	private void saveEntity(HttpEntity loginEntity) throws IOException,
@@ -114,6 +127,26 @@ public class NBSession {
 		bis.close();
 		bos.close();
 		System.out.println("Byte Count: " + byteCount);
+	}
+
+	public void save(String targetURL) {
+		HttpGet httpGet = new HttpGet(targetURL);
+		CloseableHttpResponse response;
+		try {
+			response = httpClient.execute(httpGet);
+			try {
+				HttpEntity entity = response.getEntity();
+				saveEntity(entity);
+			} finally {
+				response.close();
+			}
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 }
