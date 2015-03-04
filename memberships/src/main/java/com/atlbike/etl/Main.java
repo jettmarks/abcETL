@@ -57,8 +57,13 @@ public class Main {
 	 */
 	public static void main(String[] args) {
 		// Setup our properties
-		etlProps = new ETLProperties();
+		etlProps = ETLProperties.getInstance();
 		etlProps.load();
+
+		// Application Window
+		parentFrame = new JFrame();
+		parentFrame.setSize(500, 150);
+		parentFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		if (args.length >= 1) {
 			haveArgsFlag = true;
@@ -66,6 +71,7 @@ public class Main {
 			if (!etlProps.isAccountDefined()) {
 				// Ask user for account credentials
 				System.out.println("Asking user for account credentials");
+				LoginDialog loginDialog = new LoginDialog();
 			}
 		}
 
@@ -82,11 +88,6 @@ public class Main {
 			System.err.println("No Membership Files to be read - exiting");
 			System.exit(-1);
 		}
-
-		// Application Window
-		parentFrame = new JFrame();
-		parentFrame.setSize(500, 150);
-		parentFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		// Read from the input files into Membership objects
 		List<Membership> memberships;

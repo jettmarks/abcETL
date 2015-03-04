@@ -17,6 +17,8 @@ import java.util.Properties;
  */
 public class ETLProperties extends Properties {
 
+	private static ETLProperties instance = null;
+
 	private static final String LOGIN_EMAIL_KEY = "nb.login.userEmail";
 	private static final String LOGIN_PWD_KEY = "nb.login.password";
 
@@ -27,6 +29,13 @@ public class ETLProperties extends Properties {
 	private String loginUrl = null;
 	private String loginEmail = null;
 	private String loginPwd = null;
+
+	public static ETLProperties getInstance() {
+		if (instance == null) {
+			instance = new ETLProperties();
+		}
+		return instance;
+	}
 
 	public void load() {
 		// Defaults come in first
