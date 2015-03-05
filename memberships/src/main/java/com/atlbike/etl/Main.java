@@ -26,7 +26,9 @@ import org.supercsv.io.ICsvBeanReader;
 import org.supercsv.prefs.CsvPreference;
 
 import com.atlbike.etl.domain.Membership;
+import com.atlbike.etl.session.NBSession;
 import com.atlbike.etl.util.ETLProperties;
+import com.atlbike.etl.util.FileUtil;
 
 public class Main {
 
@@ -59,6 +61,8 @@ public class Main {
 		// Setup our properties
 		etlProps = ETLProperties.getInstance();
 		etlProps.load();
+		currentDirectory = new File(etlProps.getProperty(
+				"nb.etl.default.directory", "."));
 
 		// Application Window
 		parentFrame = new JFrame();
@@ -109,7 +113,18 @@ public class Main {
 	}
 
 	private static File[] extractFromNationBuilder() {
-		return null;
+		NBSession nbSession = new NBSession();
+		nbSession.login(etlProps.getLoginEmail(), etlProps.getLoginPwd());
+
+		String[] urlList = {
+				"https://atlbike.nationbuilder.com/admin/membership_types/3/download",
+				"https://atlbike.nationbuilder.com/admin/membership_types/14/download" };
+		File[] retrievedFiles = new File[urlList.length];
+		int i = 0;
+		for (String url : urlList) {
+			retrievedFiles[i++] = nbSession.save(url, currentDirectory);
+		}
+		return retrievedFiles;
 	}
 
 	/**
@@ -191,11 +206,17 @@ public class Main {
 		String destinationFile = "member_aging_" + fileNameSuffix + ".xlsx";
 		FileOutputStream outputStream = null;
 		try {
-			String currentPath = currentDirectory.getAbsolutePath();
-			System.out.println("Writing file to " + currentPath + "/"
-					+ destinationFile);
-			outputStream = new FileOutputStream(new File(currentPath + "/"
-					+ destinationFile));
+			File outFile = FileUtil.getIndexedDateFile(currentDirectory,
+					destinationFile);
+			// String currentPath = currentDirectory.getAbsolutePath();
+			// System.out.println("Writing file to " + currentPath +
+			// File.separator
+			// + destinationFile);
+			// outputStream = new FileOutputStream(new File(currentPath +
+			// File.separator
+			// + destinationFile));
+			System.out.println("Writing file to " + outFile.getAbsolutePath());
+			outputStream = new FileOutputStream(outFile);
 			workbookTemplate.write(outputStream);
 			outputStream.close();
 		} catch (FileNotFoundException e) {
@@ -212,8 +233,6 @@ public class Main {
 	 * @return
 	 */
 	private static File[] askUserForFileNames() {
-		currentDirectory = new File(etlProps.getProperty(
-				"nb.etl.default.directory", "."));
 		File[] inputFiles = null;
 		JFileChooser chooser = new JFileChooser();
 		chooser.setCurrentDirectory(currentDirectory);

@@ -5,6 +5,8 @@ package com.atlbike.etl.service;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.io.File;
+
 import org.junit.Test;
 
 import com.atlbike.etl.session.NBSession;
@@ -30,7 +32,9 @@ public class NBSessionTest {
 		etlProps.load();
 
 		nbSession.login(etlProps.getLoginEmail(), etlProps.getLoginPwd());
-		nbSession.save(targetURL);
+		File currentDirectory = new File(
+				etlProps.getProperty("nb.etl.default.directory"));
+		nbSession.save(targetURL, currentDirectory);
 
 	}
 

@@ -31,6 +31,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import com.atlbike.etl.util.FileUtil;
+
 public class NBSession {
 
 	private String loginRedirectURL = "https://atlbike.nationbuilder.com/login";
@@ -127,8 +129,10 @@ public class NBSession {
 		// httpClient is left open to permit next set of calls
 	}
 
-	public String save(String targetURL) {
+	public File save(String targetURL, File currentDirectory) {
 		String fileName = null;
+		File destinationFile = null;
+
 		HttpGet httpGet = new HttpGet(targetURL);
 		if (useProxyFlag) {
 			httpGet.setConfig(proxyConfig);
@@ -151,7 +155,9 @@ public class NBSession {
 
 			try {
 				HttpEntity entity = response.getEntity();
-				saveEntity(entity, fileName);
+				destinationFile = FileUtil.getIndexedDateFile(currentDirectory,
+						fileName);
+				saveEntity(entity, destinationFile);
 			} finally {
 				response.close();
 			}
@@ -162,15 +168,15 @@ public class NBSession {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return fileName;
+		return destinationFile;
 	}
 
-	private void saveEntity(HttpEntity loginEntity, String fileName)
+	private void saveEntity(HttpEntity loginEntity, File destinationFile)
 			throws IOException, FileNotFoundException {
 		InputStream inStream = loginEntity.getContent();
 		BufferedInputStream bis = new BufferedInputStream(inStream);
 		BufferedOutputStream bos = new BufferedOutputStream(
-				new FileOutputStream(new File(fileName)));
+				new FileOutputStream(destinationFile));
 		int byteCount = 0;
 		int inByte;
 		while ((inByte = bis.read()) != -1) {
