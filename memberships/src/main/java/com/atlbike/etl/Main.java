@@ -70,7 +70,6 @@ public class Main {
 		} else {
 			if (!etlProps.isAccountDefined()) {
 				// Ask user for account credentials
-				System.out.println("Asking user for account credentials");
 				LoginDialog loginDialog = new LoginDialog();
 			}
 		}

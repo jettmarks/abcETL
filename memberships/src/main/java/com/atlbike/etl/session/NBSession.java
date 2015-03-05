@@ -10,8 +10,11 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import org.apache.http.Header;
+import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -124,25 +127,8 @@ public class NBSession {
 		// httpClient is left open to permit next set of calls
 	}
 
-	private void saveEntity(HttpEntity loginEntity) throws IOException,
-			FileNotFoundException {
-		InputStream inStream = loginEntity.getContent();
-		BufferedInputStream bis = new BufferedInputStream(inStream);
-		String path = "localFile.csv";
-		BufferedOutputStream bos = new BufferedOutputStream(
-				new FileOutputStream(new File(path)));
-		int byteCount = 0;
-		int inByte;
-		while ((inByte = bis.read()) != -1) {
-			bos.write(inByte);
-			byteCount++;
-		}
-		bis.close();
-		bos.close();
-		System.out.println("Byte Count: " + byteCount);
-	}
-
-	public void save(String targetURL) {
+	public String save(String targetURL) {
+		String fileName = null;
 		HttpGet httpGet = new HttpGet(targetURL);
 		if (useProxyFlag) {
 			httpGet.setConfig(proxyConfig);
@@ -150,9 +136,22 @@ public class NBSession {
 		CloseableHttpResponse response;
 		try {
 			response = httpClient.execute(httpGet);
+			// Pickup the file name
+			Header[] contentHeader = response.getHeaders("Content-Disposition");
+			HeaderElement[] helelms = contentHeader[0].getElements();
+			if (helelms.length > 0) {
+				HeaderElement helem = helelms[0];
+				if (helem.getName().equalsIgnoreCase("attachment")) {
+					NameValuePair nvp = helem.getParameterByName("filename");
+					if (nvp != null) {
+						fileName = nvp.getValue();
+					}
+				}
+			}
+
 			try {
 				HttpEntity entity = response.getEntity();
-				saveEntity(entity);
+				saveEntity(entity, fileName);
 			} finally {
 				response.close();
 			}
@@ -163,6 +162,24 @@ public class NBSession {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return fileName;
+	}
+
+	private void saveEntity(HttpEntity loginEntity, String fileName)
+			throws IOException, FileNotFoundException {
+		InputStream inStream = loginEntity.getContent();
+		BufferedInputStream bis = new BufferedInputStream(inStream);
+		BufferedOutputStream bos = new BufferedOutputStream(
+				new FileOutputStream(new File(fileName)));
+		int byteCount = 0;
+		int inByte;
+		while ((inByte = bis.read()) != -1) {
+			bos.write(inByte);
+			byteCount++;
+		}
+		bis.close();
+		bos.close();
+		System.out.println("Byte Count: " + byteCount);
 	}
 
 }
